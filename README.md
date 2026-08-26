@@ -18,19 +18,18 @@ Aplicação de quiz de conhecimentos gerais, disponível como **Web App / PWA** 
                                    [ OpenTDB API ]
 ```
 
-## 3. Requisitos Funcionais
+## 3. Requisitos Funcionais (MVP — Single Player)
 
 | ID | Descrição |
 |----|-----------|
-| RF01 | Cadastro de usuário |
-| RF02 | Login de usuário (autenticação) |
-| RF03 | Buscar perguntas aleatórias na OpenTDB (categoria e dificuldade aleatórias) |
-| RF04 | Iniciar partida com 10 perguntas |
-| RF05 | Exibir cronômetro de 20 segundos por pergunta |
-| RF06 | Calcular pontuação por acerto, com bônus por velocidade de resposta |
-| RF07 | Salvar histórico de partidas por usuário |
-| RF08 | Exibir ranking geral de jogadores |
-| RF09 | Exibir resultado da partida ao final (acertos, erros, pontuação total) |
+| RF01 | Cadastro/login via Google (OAuth2) |
+| RF02 | Buscar 10 perguntas aleatórias na OpenTDB (categoria e dificuldade aleatórias), buscadas todas antes do início da partida |
+| RF03 | Iniciar partida individual com as 10 perguntas |
+| RF04 | Exibir cronômetro de 20 segundos por pergunta |
+| RF05 | Calcular pontuação por acerto, com bônus por velocidade de resposta |
+| RF06 | Salvar histórico de partidas por usuário |
+| RF07 | Gerar ranking global (ordenação das pontuações de todos os usuários) |
+| RF08 | Exibir resultado da partida ao final (acertos, erros, pontuação total) |
 
 ## 4. Requisitos Não Funcionais
 
@@ -39,7 +38,7 @@ Aplicação de quiz de conhecimentos gerais, disponível como **Web App / PWA** 
 | RNF01 | API RESTful, stateless |
 | RNF02 | Frontend Angular estruturado como PWA (manifest.json + service worker) |
 | RNF03 | Interface responsiva (mobile-first) |
-| RNF04 | Cache/tratamento de indisponibilidade da API OpenTDB no backend |
+| RNF04 | As 10 perguntas da partida são buscadas da OpenTDB **antes** do início (não pergunta por pergunta), evitando falha em meio à partida |
 
 ## 5. Autenticação
 
@@ -73,16 +72,40 @@ Levantados a partir da análise de vulnerabilidades identificadas em projetos an
 | RS10 | **CORS restrito** à origem do frontend Angular, nunca `*` | Evita que sites externos façam requisições autenticadas contra a API |
 | RS11 | **HTTPS obrigatório em produção** | Protege o JWT e credenciais contra interceptação em trânsito |
 
-## 7. Escopo — Fora desta versão
+## 8. Estratégia de Testes
 
+Testes fazem parte do escopo do MVP, priorizados nas camadas de maior risco: regra de negócio e segurança.
+
+**Testes unitários — camada Service (prioridade máxima)**
+- Ferramentas: JUnit 5 + Mockito (Repository mockado, lógica da Service testada isolada)
+- Cobre: cálculo de pontuação com bônus de velocidade, resposta correta/incorreta, tempo esgotado contando como erro
+
+**Testes de integração — camada Controller**
+- Ferramentas: `@SpringBootTest` + `MockMvc`, com banco H2 em memória (sem depender do MySQL para rodar os testes)
+- Cobre: fluxo completo requisição → Controller → Service → banco; validação de autenticação (401 sem token) e autorização (403 ao tentar acessar recurso de outro usuário — validação direta da regra anti-IDOR, RS08)
+
+**Testes de segurança dedicados**
+- Token expirado é rejeitado
+- Token com `aud` diferente do Client ID é rejeitado
+- Usuário tentando acessar histórico/partida de outro usuário recebe 403
+
+**Fora do escopo do MVP**
+- Testes end-to-end automatizados no frontend (Cypress/Playwright) — considerado para uma versão futura
+- Cobertura de 100% — foco em regra de negócio e segurança, não em código trivial (getters/setters)
+
+## 9. Escopo — Fora desta versão (MVP)
+
+- Salas com convite / PvP em tempo real / WebSocket (planejado para v2)
+- Ranking por sala (planejado para v2)
 - Aplicativo mobile nativo (Android/iOS) — coberto via PWA
 - Cliente desktop (removido na reformulação do projeto)
 - Escolha manual de categoria/dificuldade pelo jogador (mantido aleatório nesta versão)
 - Cadastro/login tradicional por email e senha (autenticação exclusiva via Google)
 
-## 8. Próximos Passos
+## 10. Próximos Passos
 
 - [ ] Modelagem das entidades do banco de dados (Usuário, Partida, Resposta, Ranking)
 - [ ] Estruturação inicial do projeto Spring Boot
 - [ ] Configuração do Angular como PWA
-- [ ] Implementação da autenticação (Spring Security + JWT)
+- [ ] Implementação da autenticação (Google OAuth2 + JWT próprio)
+- [ ] Testes unitários (Service) e de integração (Controller) desde o início do desenvolvimento
