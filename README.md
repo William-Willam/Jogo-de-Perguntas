@@ -72,7 +72,61 @@ Levantados a partir da análise de vulnerabilidades identificadas em projetos an
 | RS10 | **CORS restrito** à origem do frontend Angular, nunca `*` | Evita que sites externos façam requisições autenticadas contra a API |
 | RS11 | **HTTPS obrigatório em produção** | Protege o JWT e credenciais contra interceptação em trânsito |
 
-## 8. Estratégia de Testes
+## 8. Modelo de Dados
+
+```mermaid
+erDiagram
+  USUARIO ||--o{ PARTIDA : joga
+  USUARIO ||--o{ REFRESH_TOKEN : possui
+  PARTIDA ||--o{ RESPOSTA_PARTIDA : contem
+  USUARIO {
+    long id PK
+    string googleId
+    string email
+    string nome
+    string fotoUrl
+    datetime dataCriacao
+  }
+  PARTIDA {
+    long id PK
+    long usuario_id FK
+    int pontuacaoTotal
+    int acertos
+    int erros
+    datetime dataHora
+  }
+  RESPOSTA_PARTIDA {
+    long id PK
+    long partida_id FK
+    string perguntaTexto
+    string categoria
+    string dificuldade
+    string respostaCorreta
+    string respostaUsuario
+    boolean correta
+    int tempoRespostaSegundos
+    int pontosGanhos
+  }
+  REFRESH_TOKEN {
+    long id PK
+    long usuario_id FK
+    string token
+    datetime dataExpiracao
+    boolean revogado
+  }
+```
+
+**`Usuario`** — dados do jogador. Sem campo de senha (autenticação via Google); `googleId` é o `sub` do token do Google.
+
+**`Partida`** — uma partida individual jogada por um usuário: pontuação total, acertos, erros e data.
+
+**`RespostaPartida`** — histórico de cada uma das 10 perguntas de uma partida (pergunta, resposta correta, resposta do usuário, se acertou, tempo de resposta e pontos ganhos naquela pergunta). Permite revisão da partida e auditoria.
+
+**`RefreshToken`** — tokens de sessão revogáveis (requisito RS06), permitindo invalidar o acesso de um usuário remotamente sem esperar a expiração natural do token.
+
+**Ranking global**: não é uma tabela própria — é uma consulta agregada sobre `Partida` (soma ou melhor pontuação por usuário, ordenada de forma decrescente).
+
+## 9. Estratégia de Testes
 
 Testes fazem parte do escopo do MVP, priorizados nas camadas de maior risco: regra de negócio e segurança.
 
@@ -93,7 +147,7 @@ Testes fazem parte do escopo do MVP, priorizados nas camadas de maior risco: reg
 - Testes end-to-end automatizados no frontend (Cypress/Playwright) — considerado para uma versão futura
 - Cobertura de 100% — foco em regra de negócio e segurança, não em código trivial (getters/setters)
 
-## 9. Escopo — Fora desta versão (MVP)
+## 10. Escopo — Fora desta versão (MVP)
 
 - Salas com convite / PvP em tempo real / WebSocket (planejado para v2)
 - Ranking por sala (planejado para v2)
@@ -102,9 +156,9 @@ Testes fazem parte do escopo do MVP, priorizados nas camadas de maior risco: reg
 - Escolha manual de categoria/dificuldade pelo jogador (mantido aleatório nesta versão)
 - Cadastro/login tradicional por email e senha (autenticação exclusiva via Google)
 
-## 10. Próximos Passos
+## 11. Próximos Passos
 
-- [ ] Modelagem das entidades do banco de dados (Usuário, Partida, Resposta, Ranking)
+- [x] Modelagem das entidades do banco de dados (Usuário, Partida, RespostaPartida, RefreshToken)
 - [ ] Estruturação inicial do projeto Spring Boot
 - [ ] Configuração do Angular como PWA
 - [ ] Implementação da autenticação (Google OAuth2 + JWT próprio)
